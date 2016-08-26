@@ -8,7 +8,7 @@
 
 import UIKit
 
-class MemeController: UIViewController,UIImagePickerControllerDelegate,UINavigationControllerDelegate,UITextFieldDelegate{
+class MemeEditorViewController: UIViewController,UIImagePickerControllerDelegate,UINavigationControllerDelegate,UITextFieldDelegate{
 
     @IBOutlet weak var memeImage: UIImageView!
     @IBOutlet weak var cameraButton: UIBarButtonItem!
@@ -17,6 +17,7 @@ class MemeController: UIViewController,UIImagePickerControllerDelegate,UINavigat
     
     @IBOutlet weak var toolBar: UIToolbar!
     @IBOutlet weak var navigationBar: UINavigationBar!
+    @IBOutlet weak var shareButton: UIBarButtonItem!
     
     // raw values correspond to sender tags
     enum sourceType : Int {
@@ -25,24 +26,29 @@ class MemeController: UIViewController,UIImagePickerControllerDelegate,UINavigat
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        cameraButton.enabled = UIImagePickerController.isSourceTypeAvailable(UIImagePickerControllerSourceType.Camera)
         reset()
     }
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
-        self.subscribeToKeyboardNotifications()
+        subscribeToKeyboardNotifications()
+        cameraButton.enabled = UIImagePickerController.isSourceTypeAvailable(UIImagePickerControllerSourceType.Camera)
     }
     
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
-        self.unsubscribeFromKeyboardNotifications()
+        unsubscribeFromKeyboardNotifications()
+    }
+    
+    override func prefersStatusBarHidden() -> Bool {
+        return true     // status bar should be hidden
     }
     
     func reset(){
         memeImage.image=nil
         setupTextField("TOP", textField: topTextField)
         setupTextField("BOTTOM", textField: bottomTextField)
+        shareButton.enabled = false
     }
     
     func setupTextField(string: String, textField: UITextField) {
@@ -50,10 +56,9 @@ class MemeController: UIViewController,UIImagePickerControllerDelegate,UINavigat
             NSStrokeColorAttributeName : UIColor.blackColor(),
             NSForegroundColorAttributeName : UIColor.whiteColor(),
             NSFontAttributeName : UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
-            NSStrokeWidthAttributeName : -3
+            NSStrokeWidthAttributeName : -5
         ]
-        let attributedString = NSAttributedString(string: string, attributes: memeTextAttributes)
-        textField.attributedText = attributedString
+        textField.text = string
         textField.defaultTextAttributes = memeTextAttributes
         
         textField.textAlignment = .Center
@@ -62,18 +67,21 @@ class MemeController: UIViewController,UIImagePickerControllerDelegate,UINavigat
     
 
     func subscribeToKeyboardNotifications() {
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(MemeController.keyboardWillShow(_:)), name: UIKeyboardWillShowNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(MemeController.keyboardWillHide(_:)), name: UIKeyboardWillHideNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(MemeEditorViewController.keyboardWillShow(_:)), name: UIKeyboardWillShowNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(MemeEditorViewController.keyboardWillHide(_:)), name: UIKeyboardWillHideNotification, object: nil)
     }
     
     func keyboardWillShow(notification: NSNotification) {
-        //function called for reset de Y position of the view
         resetViewFrame()
-        self.view.frame.origin.y -= getKeyboardHeight(notification)
+        if bottomTextField.isFirstResponder() {
+            self.view.frame.origin.y -= getKeyboardHeight(notification)
+        }
     }
     
     func keyboardWillHide(notification: NSNotification) {
-        resetViewFrame()
+        if bottomTextField.isFirstResponder() {
+            resetViewFrame()
+        }
     }
     
     func resetViewFrame(){
@@ -97,7 +105,9 @@ class MemeController: UIViewController,UIImagePickerControllerDelegate,UINavigat
     }
     
     func textFieldDidBeginEditing(textField: UITextField) {
-        textField.text = ""
+        if textField.text == "TOP" || textField.text == "BOTTOM" {
+            textField.text = ""
+        }
     }
     
     func hideToolbar(visible: Bool) {
@@ -113,6 +123,7 @@ class MemeController: UIViewController,UIImagePickerControllerDelegate,UINavigat
         
         activity.completionWithItemsHandler =  { activity, success, items, error in
             if success {
+                self.save()
                 self.dismissViewControllerAnimated(true, completion: nil)
             }
         }
@@ -121,10 +132,13 @@ class MemeController: UIViewController,UIImagePickerControllerDelegate,UINavigat
     
     }
     
+    func save() {
+        _ = Meme(topText: topTextField.text, bottomTextString: bottomTextField.text, originalImage: memeImage.image, memeImage: generateMemedImage())
+    }
+    
     func generateMemedImage() -> UIImage {
         
         hideToolbar(true)
-        
         UIGraphicsBeginImageContext(self.view.frame.size)
         self.view.drawViewHierarchyInRect(self.view.frame, afterScreenUpdates: true)
         let memedImage: UIImage = UIGraphicsGetImageFromCurrentImageContext()
@@ -159,7 +173,8 @@ class MemeController: UIViewController,UIImagePickerControllerDelegate,UINavigat
     func imagePickerController(picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : AnyObject]) {
         if let image = info[UIImagePickerControllerOriginalImage] as? UIImage {
             memeImage.image = image
-            self.dismissViewControllerAnimated(true, completion: nil)
+            shareButton.enabled = true
+            dismissViewControllerAnimated(true, completion: nil)
         }
     }
 
