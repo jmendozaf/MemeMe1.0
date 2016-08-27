@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  MemeEditorViewController.swift
 //  MemeMe
 //
 //  Created by Javier Mendoza on 25/8/16.
@@ -26,6 +26,8 @@ class MemeEditorViewController: UIViewController,UIImagePickerControllerDelegate
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupTextField(topTextField)
+        setupTextField(bottomTextField)
         reset()
     }
     
@@ -46,19 +48,18 @@ class MemeEditorViewController: UIViewController,UIImagePickerControllerDelegate
     
     func reset(){
         memeImage.image=nil
-        setupTextField("TOP", textField: topTextField)
-        setupTextField("BOTTOM", textField: bottomTextField)
+        topTextField.text="TOP"
+        bottomTextField.text="BOTTOM"
         shareButton.enabled = false
     }
     
-    func setupTextField(string: String, textField: UITextField) {
+    func setupTextField(textField: UITextField) {
         let memeTextAttributes = [
             NSStrokeColorAttributeName : UIColor.blackColor(),
             NSForegroundColorAttributeName : UIColor.whiteColor(),
             NSFontAttributeName : UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
             NSStrokeWidthAttributeName : -5
         ]
-        textField.text = string
         textField.defaultTextAttributes = memeTextAttributes
         
         textField.textAlignment = .Center
@@ -74,7 +75,7 @@ class MemeEditorViewController: UIViewController,UIImagePickerControllerDelegate
     func keyboardWillShow(notification: NSNotification) {
         resetViewFrame()
         if bottomTextField.isFirstResponder() {
-            self.view.frame.origin.y -= getKeyboardHeight(notification)
+            view.frame.origin.y = getKeyboardHeight(notification) * (-1)
         }
     }
     
@@ -85,7 +86,7 @@ class MemeEditorViewController: UIViewController,UIImagePickerControllerDelegate
     }
     
     func resetViewFrame(){
-        self.view.frame.origin.y = 0;
+        self.view.frame.origin.y = 0
     }
     
     func getKeyboardHeight(notification: NSNotification) -> CGFloat {
@@ -101,7 +102,7 @@ class MemeEditorViewController: UIViewController,UIImagePickerControllerDelegate
     
     func textFieldShouldReturn(textField: UITextField) -> Bool {
         textField.resignFirstResponder()
-        return true;
+        return true
     }
     
     func textFieldDidBeginEditing(textField: UITextField) {
